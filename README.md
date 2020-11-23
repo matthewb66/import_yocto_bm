@@ -101,7 +101,7 @@ The `import_yocto_bm.py` usage is shown below:
 	  -m MANIFEST, --manifest MANIFEST
 				Input build manifest file (if not specified will be
 				determined from conf files)
-	  -m BUILDCONF, --buildconf BUILDCONF
+	  -b BUILDCONF, --buildconf BUILDCONF
 				Build config file (if not specified 
 				poky/meta/conf/bitbake.conf will be used)
 	  -l LOCALCONF, --localconf LOCALCONF
