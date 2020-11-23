@@ -33,7 +33,7 @@ Recipes/layers are checked against OpenEmbedded.org and those which match are ad
 
 The script must be executed on a Linux workstation where Yocto has been installed and after a successful Bitbake build.
 
-If invoked in the Yocto build folder (or the build folder is manually specified using the -y option), then it will locate the build-manifest file automatically in the tmp/deploy hierarchy.
+If invoked in the Yocto build folder (or the build folder is manually specified using the -y option), then it will locate the license-manifest file automatically in the tmp/deploy hierarchy.
 
 If the Bitbake build was performed with the Yocto `cve_check` class configured, then the script will also optionally locate the CVE log exported by CVE check, extract patched CVEs and set the remediation status of matching CVEs in the Black Duck project.
 
@@ -125,7 +125,7 @@ The `--output_json` option can be used to specify an output file for the project
 
 The Yocto target and architecture values are required to locate the manifest and cve\_check log files and will be extracted from the Bitbake config files automatically, but the `--target` and `--arch` options can be used to specify these manually.
 
-The most recent Bitbake output manifest file (located in the `build/tmp/deploy/licenses/<image>-<target>-<datetime>/package.manifest` file) will be located automatically. Use the `--manifest` option to specify the manifest file manually.
+The most recent Bitbake output manifest file (located in the `build/tmp/deploy/licenses/<image>-<target>-<datetime>/license.manifest` file) will be located automatically. Use the `--manifest` option to specify the manifest file manually.
 
 The most recent cve\_check log file `build/tmp/deploy/images/<arch>/<image>-<target>-<datetime>.rootfs.cve` will be located automatically if it exists. Use the `--cve_check_file` option to specify the cve\_check log file location manually (for example to use an older copy).
 
