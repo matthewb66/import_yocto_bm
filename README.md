@@ -79,7 +79,7 @@ The `import_yocto_bm.py` usage is shown below:
 	usage: import_yocto_bm [-h] [-p PROJECT] [-v VERSION] [-y YOCTO_FOLDER]
 				[-t TARGET] [-o OUTPUT_JSON] [-m MANIFEST]
 				[-b BUILDCONF] [-l LOCALCONF] [--arch ARCH]
-				[--cve_check_only] [--no_cve_check]
+				[-r repfile] [--cve_check_only] [--no_cve_check]
 				[--cve_check_file CVE_CHECK_FILE]
 
 	Import Yocto build manifest to BD project version
@@ -108,6 +108,8 @@ The `import_yocto_bm.py` usage is shown below:
 	  -l LOCALCONF, --localconf LOCALCONF
 				Local config file (if not specified 
 				poky/build/conf/local.conf will be used)
+	  -r REPFILE, --replacefile REPFILE
+	  			Replace file used to replace layer and recipe names
 	  --arch ARCH           Architecture (if not specified then will be determined
 				from conf files)
 	  --cve_check_only      Only check for patched CVEs from cve_check and update
@@ -152,6 +154,28 @@ A `.restconfig.json` file must be created within the build folder: example `.res
     }
 
 Where `SERVER_URL` is the Black Duck server URL and `TOKEN` is the Black Duck API token.
+
+# REPLACING LAYER AND RECIPE NAMES
+
+Layers and recipes extracted from the project are combined by Black Duck and used to lookup original OSS components at https://layers.openembedded.org. If OSS components are moved from original layers to a new (custom) or different layer which is not shown at https://layers.openembedded.org then they will not be mapped in the resulting Black Duck project.
+
+To reference the original component, you can use the `--replacefile REPFILE` option to map OSS components back to original layers or original names.
+
+The replacefile option can also be used to remap new OSS component versions (not listed at https://layers.openembedded.org) to previous versions which are listed.
+
+Example REPFILE content is shown below:
+
+	LAYER meta-customlayer meta-oe
+	RECIPE alsa-lib2 alsa-lib
+	RECIPE alsa-lib/1.2.1.2-r5 alsa-lib/1.2.1.2-r0
+	RECIPE meta-customlayer/alsa-lib meta/alsa-lib
+	RECIPE meta-customlayer/alsa-lib/1.2.1.2-r0 meta/alsa-lib/1.2.1.2-r0
+
+The `LAYER` line will remap all recipes from the `meta-customlayer` layer to `meta-oe`.
+The 1st `RECIPE` line will remap all recipe versions called `alsa-lib2` to `alsa-lib` across all layers .
+The 2nd `RECIPE` line will remap the recipe and version `alsa-lib/1.2.1.2-r5` across all layers to `alsa-lib/1.2.1.2-r0`.
+The 3rd `RECIPE` line will remap all versions of the recipe `alsa-lib` in the `meta-customlayer` layer to `meta/alsa-lib`.
+The 4th `RECIPE` line will remap recipe and version `alsa-lib/1.2.1.2-r5` in the `meta-customlayer` to `meta/alsa-lib/1.2.1.2-r0`.
 
 # EXAMPLE USAGE
 
