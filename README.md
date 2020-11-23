@@ -125,6 +125,8 @@ The `--project` and `--version` options are required to define the Black Duck pr
 
 The `--output_json` option can be used to specify an output file for the project scan. If specified, then the scan will not be uploaded automatically and CVE patch checking will be skipped.
 
+The `--replacefile` option can be used to specify a layer/recipe/version replacement file (see REPLACING LAYER AND RECIPE NAMES below).
+
 The Yocto target and architecture values are required to locate the manifest and cve\_check log files and will be extracted from the Bitbake config files automatically, but the `--target` and `--arch` options can be used to specify these manually.
 
 The most recent Bitbake output manifest file (located in the `build/tmp/deploy/licenses/<image>-<target>-<datetime>/license.manifest` file) will be located automatically. Use the `--manifest` option to specify the manifest file manually.
