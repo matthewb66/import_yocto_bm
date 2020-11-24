@@ -606,7 +606,7 @@ def main():
 	global comps_layers
 	global rep_layers
 	global rep_recipes
-	do_upload = False
+	do_upload = True
 
 	print("Yocto build manifest import into Black Duck Utility v1.5")
 	print("--------------------------------------------------------\n")
