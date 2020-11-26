@@ -608,7 +608,7 @@ def main():
 	global rep_recipes
 	do_upload = True
 
-	print("Yocto build manifest import into Black Duck Utility v1.5")
+	print("Yocto build manifest import into Black Duck Utility v1.6")
 	print("--------------------------------------------------------\n")
 
 	if (not check_args()) or (not check_env()) or (not find_files()):
