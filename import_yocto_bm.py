@@ -204,14 +204,17 @@ def proc_layers_in_recipes():
 	start = False
 	layernum = 0
 	for line in lines:
+		nline = line.strip()
 		if start:
-			if line.endswith(":"):
-				arr = line.split(":")
+			if nline.endswith(":"):
+				arr = nline.split(":")
 				rec = arr[0]
-				layernum = 1
-			elif layernum == 1:
-				arr = line.split()
-				if len(arr) > 1:
+				layernum = 0
+			elif layernum == 0:
+				arr = nline.split()
+				if len(arr) == 3 and arr[2] == "(skipped)":
+					pass
+				elif len(arr) > 1:
 					layer = arr[0]
 					ver = arr[1]
 					recipe_layer[rec] = layer
@@ -221,7 +224,7 @@ def proc_layers_in_recipes():
 						layers.append(layer)
 				rec = ""
 				layernum += 1
-		elif line.find("=== Matching recipes: ===") != -1:
+		elif nline.find("=== Matching recipes: ===") != -1:
 			start = True
 	print("	Discovered {} layers".format(len(layers)))
 
@@ -256,16 +259,11 @@ def proc_layers():
 			layer_string = rep_layers[layer]
 		else:
 			layer_string = layer
-		proj_rel.append(
-			{
-				"related": "http:yocto/" + layer_string + "/1.0",
-				"relationshipType": "DYNAMIC_LINK"
-			}
-		)
+		
 		layer_rel = []
+		recipesinlayer = 0
 		for recipe in recipes.keys():
 			if recipe in recipe_layer.keys() and recipe_layer[recipe] == layer:
-				#print("DEBUG: " + recipe)
 				if recipes[recipe].find("+gitAUTOINC") != -1:
 					ver = recipes[recipe].split("+")[0] + "+gitX-" + recipes[recipe].split("-")[-1]
 				else:
@@ -293,28 +291,36 @@ def proc_layers():
 						"relationshipType": "DYNAMIC_LINK"
 					}
 				)
+				recipesinlayer += 1
 
-		comps_layers.append({
-			"@id": "http:yocto/" + thislayer + "/1.0",
-			"@type": "Component",
-			"externalIdentifier": {
-			"externalSystemTypeId": "@yocto",
-			"externalId": thislayer,
-			"externalIdMetaData": {
-			"forge": {
-				"name": "yocto",
-				"separator": "/",
-				"usePreferredNamespaceAlias": True
-			},
-			"pieces": [
-				thislayer,
-				"1.0"
-			],
-			"prefix": "meta"
-		      }
-		    },
-		    "relationship": layer_rel
-		})
+		if recipesinlayer > 0:
+			proj_rel.append(
+				{
+					"related": "http:yocto/" + layer_string + "/1.0",
+					"relationshipType": "DYNAMIC_LINK"
+				}
+			)
+			comps_layers.append({
+				"@id": "http:yocto/" + thislayer + "/1.0",
+				"@type": "Component",
+				"externalIdentifier": {
+				"externalSystemTypeId": "@yocto",
+				"externalId": thislayer,
+				"externalIdMetaData": {
+				"forge": {
+					"name": "yocto",
+					"separator": "/",
+					"usePreferredNamespaceAlias": True
+				},
+				"pieces": [
+					thislayer,
+					"1.0"
+				],
+				"prefix": "meta"
+			      }
+			    },
+			    "relationship": layer_rel
+			})
 
 def proc_recipes():
 	global recipes, recipe_layer, comps_recipes
@@ -592,6 +598,7 @@ proj_rel = []
 comps_layers = []
 rep_layers = {}
 rep_recipes = {}
+do_upload = True
 
 def main():
 	global args
@@ -609,9 +616,9 @@ def main():
 	global comps_layers
 	global rep_layers
 	global rep_recipes
-	do_upload = True
+	global do_upload
 
-	print("Yocto build manifest import into Black Duck Utility v1.7_debug")
+	print("Yocto build manifest import into Black Duck Utility v1.71_debug")
 	print("--------------------------------------------------------\n")
 
 	if (not check_args()) or (not check_env()) or (not find_files()):
@@ -719,18 +726,22 @@ def main():
 			time.sleep(15)
 
 		try:
-			print("- Reading Black Duck project ...")
+			print("- Reading Black Duck project {}/{} ...".format(args.project, args.version))
 			ver = hub.get_project_version_by_name(args.project, args.version)
 		except Exception as e:
 			print("ERROR: Unable to get project version from API\n" + str(e))
 			sys.exit(3)
 
-		if not wait_for_scans(hub, ver):
-			print("ERROR: Unable to determine scan status")
-			sys.exit(3)
+		try:
+			if not wait_for_scans(hub, ver):
+				print("ERROR: Unable to determine scan status")
+				sys.exit(3)
 
-		if not wait_for_bom_completion(hub, ver):
-			print("ERROR: Unable to determine BOM status")
+			if not wait_for_bom_completion(hub, ver):
+				print("ERROR: Unable to determine BOM status")
+				sys.exit(3)
+		except Exception as e:
+			print("ERROR: Unable to process project {}/{} (check permissions?)\n".format(args.project, args.version) + str(e))
 			sys.exit(3)
 
 		print("- Loading CVEs from cve_check log ...")
