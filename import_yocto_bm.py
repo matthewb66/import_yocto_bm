@@ -202,12 +202,14 @@ def proc_layers_in_recipes():
 	lines = mystr.splitlines()
 	rec = ""
 	start = False
+	layernum = 0
 	for line in lines:
 		if start:
 			if line.endswith(":"):
 				arr = line.split(":")
 				rec = arr[0]
-			else:
+				layernum = 1
+			elif layernum == 1:
 				arr = line.split()
 				if len(arr) > 1:
 					layer = arr[0]
@@ -218,6 +220,7 @@ def proc_layers_in_recipes():
 					if layer not in layers:
 						layers.append(layer)
 				rec = ""
+				layernum += 1
 		elif line.find("=== Matching recipes: ===") != -1:
 			start = True
 	print("	Discovered {} layers".format(len(layers)))
@@ -608,7 +611,7 @@ def main():
 	global rep_recipes
 	do_upload = True
 
-	print("Yocto build manifest import into Black Duck Utility v1.6")
+	print("Yocto build manifest import into Black Duck Utility v1.7_debug")
 	print("--------------------------------------------------------\n")
 
 	if (not check_args()) or (not check_env()) or (not find_files()):
