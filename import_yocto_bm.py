@@ -97,11 +97,11 @@ def find_files():
 
 	try:
 		c = open(args.buildconf, "r")
-		for line in c:
-			if re.search('^TMPDIR ', line):
-				tmpdir = line.split()[2]
-			if re.search('^DEPLOY_DIR ', line):
-				deploydir = line.split()[2]
+		for cline in c:
+			if re.search('^TMPDIR ', cline):
+				tmpdir = cline.split()[2]
+			if re.search('^DEPLOY_DIR ', cline):
+				deploydir = cline.split()[2]
 		c.close()
 	except Exception as e:
 		print("ERROR: Unable to read bitbake.conf file {}\n".format(args.buildconf) + str(e))
@@ -124,14 +124,22 @@ def find_files():
 	if tmpdir != "":
 		tmpdir = tmpdir.replace('${TOPDIR}', args.yocto_build_folder)
 		tmpdir = tmpdir.strip('"')
+		tmpdir = os.path.expandvars(tmpdir)
 	else:
 		tmpdir = os.path.join(args.yocto_build_folder, "tmp")
+	if not os.path.isdir(tmpdir):
+		print("ERROR: TMPDIR does not exist {}\n".format(tmpdir))
+		return(False)
 
 	if deploydir != "":
 		deploydir = deploydir.replace('${TMPDIR}', tmpdir)
 		deploydir = deploydir.strip('"')
+		deploydir = os.path.expandvars(deploydir)
 	else:
 		deploydir = os.path.join(args.yocto_build_folder, "tmp", "deploy")
+	if not os.path.isdir(deploydir):
+		print("ERROR: DEPLOYDIR does not exist {}\n".format(deploydir))
+		return(False)
 
 	if args.arch == "":
 		args.arch = machine.strip('"')
@@ -201,14 +209,14 @@ def proc_layers_in_recipes():
 	mystr = output.decode("utf-8").strip()
 	lines = mystr.splitlines()
 	rec = ""
-	start = False
-	for line in lines:
-		if start:
-			if line.endswith(":"):
-				arr = line.split(":")
+	bstart = False
+	for rline in lines:
+		if bstart:
+			if rline.endswith(":"):
+				arr = rline.split(":")
 				rec = arr[0]
-			else:
-				arr = line.split()
+			elif rec != "":
+				arr = rline.split()
 				if len(arr) > 1:
 					layer = arr[0]
 					ver = arr[1]
@@ -218,8 +226,8 @@ def proc_layers_in_recipes():
 					if layer not in layers:
 						layers.append(layer)
 				rec = ""
-		elif line.find("=== Matching recipes: ===") != -1:
-			start = True
+		elif rline.endswith(" recipes: ==="):
+			bstart = True
 	print("	Discovered {} layers".format(len(layers)))
 
 def proc_recipe_revisions():
@@ -241,6 +249,9 @@ def proc_recipe_revisions():
 					arr = line.split(":")
 					rev = arr[1].strip()
 					recipes[recipe] += "-" + rev
+		else:
+			print("ERROR: Recipeinfo file {} does not exist\n".format(recipeinfo))
+			sys.exit(3)
 
 def proc_layers():
 	global proj_rel, comps_layers, layers, recipes, recipe_layer
@@ -264,9 +275,8 @@ def proc_layers():
 			if recipe in recipe_layer.keys() and recipe_layer[recipe] == layer:
 				#print("DEBUG: " + recipe)
 				if recipes[recipe].find("+gitAUTOINC") != -1:
-					ver = recipes[recipe].split("+")[0] + "+gitX-" + recipes[recipe].split("-")[-1]
-				else:
-					ver = recipes[recipe]
+					recipes[recipe] = recipes[recipe].split("+")[0] + "+gitX-" + recipes[recipe].split("-")[-1]
+				ver = recipes[recipe]
 
 				thislayer = layer_string
 				if recipe in rep_recipes.keys():
@@ -379,9 +389,9 @@ def write_bdio(bdio):
 			o = open(args.output_json, "w")
 			o.write(json.dumps(bdio, indent=4))
 			o.close()
-			print("Json project file written to {} - must be manually uploaded".format(args.output_json))
+			print("\nJSON project file written to {} - must be manually uploaded".format(args.output_json))
 		except Exception as e:
-			print("ERROR: Unable to write output json file {}\n".format(args.output_json) + str(e))
+			print("ERROR: Unable to write output JSON file {}\n".format(args.output_json) + str(e))
 			return(False)
 
 	else:
@@ -392,7 +402,7 @@ def write_bdio(bdio):
 				o.write(json.dumps(bdio, indent=4).encode())
 				o.close()
 		except Exception as e:
-			print("ERROR: Unable to write temporary output json file\n" + str(e))
+			print("ERROR: Unable to write temporary output JSON file\n" + str(e))
 			return(False)
 
 	return(True)
@@ -543,6 +553,118 @@ def proc_replacefile():
 	print("	{} replace entries processed".format(len(rep_layers) + len(rep_recipes)))
 	return(True)
 
+def check_recipes(kbrecfile):
+	global recipes, recipe_layer
+
+	import requests
+
+	print("- Checking recipes against Black Duck KB ...")
+
+	if kbrecfile != "":
+		if not os.path.isfile(kbrecfile):
+			return
+
+		try:
+			k = open(kbrecfile, "r")
+			klines = k.readlines()
+			k.close()
+		except Exception as e:
+			return
+	else:
+		print("	Downloading KB recipes ...")
+
+		url = 'https://raw.github.com/matthewb66/import_yocto_bm/master/data/kb_yocto_recipes.txt'
+		r = requests.get(url)
+
+		if r.status_code != 200:
+			print("Unable to download KB recipe data from Github. Unable to download KB recipe data from Github. Consider downloading manually and using the --kb_recipe_file option.")
+			return
+		klines = r.text.split("\n")
+
+	print("	Reading KB recipes ...")
+	kblayers = []
+	kbrecipes = {}
+	kbentries = []
+
+	for kline in klines:
+		arr = kline.rstrip().split('/')
+		if len(arr) == 3:
+			layer = arr[0]
+			recipe = arr[1]
+			ver = arr[2]
+			if layer not in kblayers:
+				kblayers.append(layer)
+
+			if recipe not in kbrecipes.keys():
+				kbrecipes[recipe] = [ layer + "/" + ver ]
+			elif layer + "/" + ver not in kbrecipes[recipe]:
+				kbrecipes[recipe].append(layer + "/" + ver)
+
+			if kline not in kbentries:
+				kbentries.append(layer + "/" + recipe + "/" + ver)
+
+	print("	Processed {} recipes from KB".format(len(kbentries)))
+	for recipe in recipes.keys():
+		ver = recipes[recipe]
+
+		if recipe in recipe_layer.keys():
+			layer = recipe_layer[recipe]
+			comp = layer + "/" + recipe + "/" + ver
+			if comp in kbentries:
+				# Component exists in KB
+				continue
+
+		# No exact match found in KB list
+		if recipe in kbrecipes.keys():
+			# recipe exists in KB
+			kbrecvers = []
+			kbreclayers = []
+			layerinkb = False
+			for entry in kbrecipes[recipe]:
+				arr = entry.split("/")
+				kbreclayers.append(arr[0])
+				kbrecvers.append(arr[1])
+				if layer == arr[0]:
+					layerinkb = True
+				if ver == arr[1]:
+					# Recipe and version exist in KB - layer is different
+					print("	- Component {}: Recipe and version exist in KB, but not within the layer '{}' - replaced with '{}/{}/{}' from KB".format(comp, layer, arr[0], recipe, ver))
+					recipe_layer[recipe] = arr[0]
+					break
+			else:
+				# Version does not exist in KB
+				rev = ver.split("-r")[-1]
+				if len(ver.split("-r")) > 1 and rev.isdigit():
+					ver_without_rev = ver[0:len(ver) - len(rev) - 2]
+					for kbver in kbrecvers:
+						kbrev = kbver.split("-r")[-1]
+						if len(kbver.split("-r")) > 1 and kbrev.isdigit():
+							kbver_without_rev = kbver[0:len(kbver) - len(kbrev) - 2]
+							if ver_without_rev == kbver_without_rev:
+								# Found KB version with a different revision
+								if layer == kbreclayers[kbrecvers.index(kbver)]:
+									print("	- Component {}: Layer, recipe and version exist in KB, but revision does not - replaced with '{}/{}/{}' from KB".format(comp, kbreclayers[kbrecvers.index(kbver)], recipe, kbver))
+									recipes[recipe] = kbver
+								else:
+									print("	- Component {}: Recipe and version exist in KB, but revision and layer do not - replaced with '{}/{}/{}' from KB".format(comp, kbreclayers[kbrecvers.index(kbver)], recipe, kbver))
+									recipe_layer[recipe] = kbreclayers[kbrecvers.index(kbver)]
+									recipes[recipe] = kbver
+								break
+					else:
+						# Recipe exists in layer within KB, but version does not
+						print("	- Component {}: Recipe exists in KB within the layer but version does not - consider using --repfile with a version replacement (available versions {})".format(comp, kbrecvers))
+						continue
+				else:
+					# Recipe exists in layer within KB, but version does not
+					print("	- Component {}: Recipe exists in KB within the layer but version does not - consider using --repfile with a version replacement (available versions {})".format(comp, kbrecvers))
+					continue
+			continue
+
+		print("	- Component {} missing from KB - will not be mapped in Black Duck project".format(comp))
+
+	print("	Checked {} recipes from Yocto project ...".format(len(recipes)))
+	return
+
 import os, io
 import json
 import uuid
@@ -572,6 +694,8 @@ parser.add_argument("--arch", help="Architecture (if not specified then will be 
 parser.add_argument("--cve_check_only", help="Only check for patched CVEs from cve_check and update existing project", action='store_true')
 parser.add_argument("--no_cve_check", help="Skip check for and update of patched CVEs", action='store_true')
 parser.add_argument("--cve_check_file", help="CVE check output file (if not specified will be determined from conf files)", default="")
+parser.add_argument("--no_kb_check", help="Do not check recipes against KB", action='store_true')
+parser.add_argument("--kb_recipe_file", help="KB recipe file local copy", default="")
 
 args = parser.parse_args()
 
@@ -589,6 +713,7 @@ proj_rel = []
 comps_layers = []
 rep_layers = {}
 rep_recipes = {}
+do_upload = True
 
 def main():
 	global args
@@ -606,9 +731,9 @@ def main():
 	global comps_layers
 	global rep_layers
 	global rep_recipes
-	do_upload = True
+	global do_upload
 
-	print("Yocto build manifest import into Black Duck Utility v1.6")
+	print("Yocto build manifest import into Black Duck Utility v1.7")
 	print("--------------------------------------------------------\n")
 
 	if (not check_args()) or (not check_env()) or (not find_files()):
@@ -650,6 +775,9 @@ def main():
 		proc_recipe_revisions()
 		proc_layers()
 		proc_recipes()
+
+		if not args.no_kb_check:
+			check_recipes(args.kb_recipe_file)
 
 		#proj_rel is for the project relationship (project to layers)
 
@@ -771,3 +899,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
