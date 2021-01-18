@@ -261,12 +261,12 @@ def proc_layers():
 	#proj_rel is for the project relationship (project to layers)
 	for layer in layers:
 		if layer in rep_layers.keys():
-			layer_string = rep_layers[layer]
+			rep_layer = rep_layers[layer]
 		else:
-			layer_string = layer
+			rep_layer = layer
 		proj_rel.append(
 			{
-				"related": "http:yocto/" + layer_string + "/1.0",
+				"related": "http:yocto/" + rep_layer + "/1.0",
 				"relationshipType": "DYNAMIC_LINK"
 			}
 		)
@@ -278,35 +278,35 @@ def proc_layers():
 					recipes[recipe] = recipes[recipe].split("+")[0] + "+gitX-" + recipes[recipe].split("-")[-1]
 				ver = recipes[recipe]
 
-				thislayer = layer_string
+				rec_layer = rep_layer
 				if recipe in rep_recipes.keys():
 					recipever_string = rep_recipes[recipe] + "/" + ver
 				elif recipe + "/" + ver in rep_recipes.keys():
 					recipever_string = rep_recipes[recipe + "/" + ver]
 				elif layer + "/" + recipe in rep_recipes.keys():
-					thislayer = rep_recipes[layer + "/" + recipe].split("/")[0]
-					slash = rep_recipes[layer + "/" + recipe].find("/") + 1
-					recipever_string = rep_recipes[layer + "/" + recipe][slash:]
+					rec_layer = rep_recipes[rep_layer + "/" + recipe].split("/")[0]
+					slash = rep_recipes[rep_layer + "/" + recipe].find("/") + 1
+					recipever_string = rep_recipes[rep_layer + "/" + recipe][slash:]
 				elif layer + "/" + recipe + "/" + ver in rep_recipes.keys():
-					thislayer = rep_recipes[layer + "/" + recipe + "/" + ver].split("/")[0]
-					slash = rep_recipes[layer + "/" + recipe + "/" + ver].find("/") + 1
-					recipever_string = rep_recipes[layer + "/" + recipe + "/" + ver][slash:]
+					rec_layer = rep_recipes[rep_layer + "/" + recipe + "/" + ver].split("/")[0]
+					slash = rep_recipes[rep_layer + "/" + recipe + "/" + ver].find("/") + 1
+					recipever_string = rep_recipes[rep_layer + "/" + recipe + "/" + ver][slash:]
 				else:
 					recipever_string = recipe + "/" + ver
 
 				layer_rel.append(
 					{
-						"related": "http:yocto/" + thislayer + "/" + recipever_string,
+						"related": "http:yocto/" + rec_layer + "/" + recipever_string,
 						"relationshipType": "DYNAMIC_LINK"
 					}
 				)
 
 		comps_layers.append({
-			"@id": "http:yocto/" + thislayer + "/1.0",
+			"@id": "http:yocto/" + rep_layer + "/1.0",
 			"@type": "Component",
 			"externalIdentifier": {
 			"externalSystemTypeId": "@yocto",
-			"externalId": thislayer,
+			"externalId": rep_layer,
 			"externalIdMetaData": {
 			"forge": {
 				"name": "yocto",
@@ -314,7 +314,7 @@ def proc_layers():
 				"usePreferredNamespaceAlias": True
 			},
 			"pieces": [
-				thislayer,
+				rep_layer,
 				"1.0"
 			],
 			"prefix": "meta"
@@ -733,7 +733,7 @@ def main():
 	global rep_recipes
 	global do_upload
 
-	print("Yocto build manifest import into Black Duck Utility v1.7")
+	print("Yocto build manifest import into Black Duck Utility v1.8")
 	print("--------------------------------------------------------\n")
 
 	if (not check_args()) or (not check_env()) or (not find_files()):
