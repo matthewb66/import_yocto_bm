@@ -124,6 +124,10 @@ The `import_yocto_bm.py` usage is shown below:
 	  --cve_check_file CVE_CHECK_FILE
 				CVE check output file (if not specified will be
 				determined from conf files)
+	  --no_kb_check         Do not check recipes against KB
+	  --kb_recipe_file KB_RECIPE_FILE
+                        	KB recipe file local copy
+
 
 The script will use the invocation folder as the Yocto build folder (e.g. yocto_zeus/poky/build) by default (if there is a `build` sub-folder then it will be used instead). The `--yocto_folder` option can be used to specify the Yocto build folder as opposed to the invocation folder.
 
@@ -208,6 +212,10 @@ To perform a CVE check patch analysis only use the command:
 To create a JSON output scan without uploading (and no CVE patch update) use:
 
     (Script installed) python3 $YOCTO_BM_LOC/import_yocto_bm.py -p myproject -v v1.0 -o my.jsonld
+
+To create a JSON output scan without uploading (and no CVE patch update) without checking recipes against the KB recipe list downloaded from Github:
+
+    (Script installed) python3 $YOCTO_BM_LOC/import_yocto_bm.py -p myproject -v v1.0 -o my.jsonld --no_kb_check
 
 # CVEs from cve_check Versus Black Duck
 
