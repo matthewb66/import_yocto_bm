@@ -27,7 +27,7 @@ You should NOT use Black Duck Signature scanning for whole Yocto projects (excep
 
 In this mode, Synopsys Detect calls Bitbake to report the project layers and recipes, checking against the recipes reported at OpenEmbedded.org (refer to [layers.openembedded.org](http://layers.openembedded.org/) to identify layers and recipes which will be mapped) and creating a Black Duck project containing the mapped components. Recipes in layers not reported at OpenEmbedded.org will not be imported into Black Duck, and you should consider using other Black Duck scan techniques to identify OSS within specific custom recipes referenced in the build. Note also that moving original OSS recipes to new layers will also stop them being reported.
 
-The resulting project will contain all mapped recipes/layers including those used to create the image but which may not delivered in the built image.
+The resulting project will contain mapped recipes/layers including those used to create the image but which may not delivered in the built image. Recipe matching also requires that OSS components are used within standard recipes/revisions and within the original layer. If you copy a recipe to a new or different layer, it will not be matched in the Black Duck project.
 
 To perform a Yocto scan using Synopsys Detect:
 - Change to the poky folder of a Yocto project
@@ -47,9 +47,31 @@ If the Bitbake build was performed with the Yocto `cve_check` class configured, 
 
 It requires access to the Black Duck server via the API (see Prerequisites below) unless the -o option is used to create the output scan file for manual upload.
 
+# OVERALL SCAN PROCESS USING IMPORT_YOCTO_BM
+
+Using this script will allow standard OSS recipes to be imported to the Black Duck project. It will also identify where standard OSS recipes have been moved to new or different layers, and match close revisions, but the version must be the same.
+
+The proposed process to scan a Yocto project using this script is:
+
+1. Use the import_yocto_bm to identify original OSS recipes within the project and create a Black Duck project version.
+
+1. Add the `--report rep.txt` option to export a report of the matched recipes. This will include reports categorised as follows:
+
+- OK = recipe matched the Black Duck KB and will be included in the Black Duck project
+- REPLACED = recipe has been moved to a new layer and the script has referenced the original layer in the KB - will be included in the Black Duck project
+- REPLACED_NOREVISION = the script has replaced the revision to match the KB - will be included in project
+- REPLACED_NOLAYER+REVISION = recipe has been moved to a new layer with a new revision and the script has referenced the original layer and revision in the KB - will be included in the Black Duck project
+- NOTREPLACED_NOVERSION = the layer and recipe exist in the KB but the version does not - will not be included in the Black Duck project
+- NOTREPLACED_NOLAYER+VERSION = the recipe exists in the KB but the layer and version do not - will not be included in the Black Duck project
+- MISSING = recipe does not exist in the KB and will not be included in the Black Duck project
+
+3. For the NOTREPLACED_NOVERSION and NOTREPLACED_NOLAYER+VERSION recipes, you could consider using the `--replacefile repfile` option to map to layers/recipes and version/revisions which exist in the KB, rerunning the script to import them. See the section REPLACING LAYER AND RECIPE NAMES below.
+
+4. For the MISSING recipes, these are almost certainly custom recipes either containing new OSS or a mix of custom application code and OSS. Identify the layers which contain mainly custom recipes, and use standard Black Duck signature scanning (and optionally snippet scanning) to search for modified OSS within these sub-folders only. __Do not run a signature or snippet scan on the entire Yocto project__ - make sure you only use this for the custom layers and recipes. You can optionally combine the dependency and signature scans in the same Black Duck project.
+
 # SUPPORTED YOCTO PROJECTS
 
-This script is designed to support Yocto versions 2.0 up to 3.1 for building projects.
+This script is designed to support Yocto versions 2.0 up to 3.3 for building projects.
 
 OSS components from OpenEmbedded recipes maintained at layers.openbedded.org should be detected by the scan. Additional OSS components managed by custom recipes will not be detected.
 
