@@ -11,9 +11,11 @@ The `import_yocto_bm.py` script is designed to import a Yocto project build mani
 
 It can be used as an alternative to the standard Yocto scan process for Black Duck provided within Synopsys Detect, and is mainly focussed on identifying the recipes within the built image as opposed to all recipes in the build environment, but provides additional capabilities including checking against the Black Duck KB, replacing recipe specifications and propagating locally patched CVEs to the Black Duck project.
 
-# LATEST UPDATES - VERSION 1.8
+# LATEST UPDATES - VERSION 1.9
 
-This new version 1.8 automatically downloads a list of all Yocto projects stored in the Black Duck KB and checks the recipes in the local project, remapping recipes to origin layers or revisions to reduce the number of non matched components in the resulting Black Duck project. This functionality can be skipped using the --no_kb_check option, or if the download of the KB data from Github is not possible within the script, the --kb_recipe_file option allows a local copy to be used.
+Version 1.9 adds a fix for the KB recipe lookup, and a new report output showing the list of recipes matched, modified or not matchable (use `--report reort.txt` option).
+
+Version 1.8 automatically downloads a list of all Yocto projects stored in the Black Duck KB and checks the recipes in the local project, remapping recipes to origin layers or revisions to reduce the number of non matched components in the resulting Black Duck project. This functionality can be skipped using the --no_kb_check option, or if the download of the KB data from Github is not possible within the script, the --kb_recipe_file option allows a local copy to be used.
 
 The DEPLOY_DIR and TMP_DIR values extracted from conf files now support the use of environment variables. Other fixes have been applied especially to the processing of the recipeinfo files and extraction of recipe revisions.
 
@@ -86,7 +88,7 @@ The `import_yocto_bm.py` usage is shown below:
 				[-t TARGET] [-o OUTPUT_JSON] [-m MANIFEST]
 				[-b BUILDCONF] [-l LOCALCONF] [--arch ARCH]
 				[-r repfile] [--cve_check_only] [--no_cve_check]
-				[--cve_check_file CVE_CHECK_FILE]
+				[--cve_check_file CVE_CHECK_FILE] [--report rep.txt]
 
 	Import Yocto build manifest to BD project version
 
@@ -127,6 +129,7 @@ The `import_yocto_bm.py` usage is shown below:
 	  --no_kb_check         Do not check recipes against KB
 	  --kb_recipe_file KB_RECIPE_FILE
                         	KB recipe file local copy
+	  --report rep.txt	If KB check is performed, produce a list of matched. modified and unmatched recipes.
 
 
 The script will use the invocation folder as the Yocto build folder (e.g. yocto_zeus/poky/build) by default (if there is a `build` sub-folder then it will be used instead). The `--yocto_folder` option can be used to specify the Yocto build folder as opposed to the invocation folder.
