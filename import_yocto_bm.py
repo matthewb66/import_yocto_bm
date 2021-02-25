@@ -281,6 +281,9 @@ def proc_recipe_revisions():
     for recipe in recipes.keys():
         if args.debug:
             recipes[recipe] += "-r0"
+        if recipes[recipe].find("AUTOINC") != -1:
+            recipes[recipe] = recipes[recipe].split("AUTOINC")[0] + "X-" + recipes[recipe].split("-")[-1]
+        if args.debug:
             continue
 
         recipeinfo = os.path.join(licdir, recipe, "recipeinfo")
@@ -323,8 +326,6 @@ def proc_layers():
         for recipe in recipes.keys():
             if recipe in recipe_layer.keys() and recipe_layer[recipe] == layer:
                 # print("DEBUG: " + recipe)
-                if recipes[recipe].find("+gitAUTOINC") != -1:
-                    recipes[recipe] = recipes[recipe].split("+")[0] + "+gitX-" + recipes[recipe].split("-")[-1]
                 ver = recipes[recipe]
 
                 rec_layer = rep_layer
@@ -379,10 +380,7 @@ def proc_recipes():
 
     print("- Processing recipes: ...")
     for recipe in recipes.keys():
-        if recipes[recipe].find("+gitAUTOINC") != -1:
-            ver = recipes[recipe].split("+")[0] + "+gitX-" + recipes[recipe].split("-")[-1]
-        else:
-            ver = recipes[recipe]
+        ver = recipes[recipe]
 
         if recipe in recipe_layer.keys():
             layer = recipe_layer[recipe]
@@ -767,6 +765,7 @@ def check_recipes(kbrecfile):
             return
         finally:
             repfile.close()
+            print(' Report file report.txt written containing list of mapped layers/recipes.')
 
     return
 
@@ -847,7 +846,7 @@ def main():
     global rep_recipes
     global do_upload
 
-    print("Yocto build manifest import into Black Duck Utility v1.9")
+    print("Yocto build manifest import into Black Duck Utility v1.10")
     print("--------------------------------------------------------\n")
 
     if (not check_args()) or (not check_env()) or (not find_files()):
