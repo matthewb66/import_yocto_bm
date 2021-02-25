@@ -275,14 +275,17 @@ def proc_layers_in_recipes():
 
 
 def proc_recipe_revisions():
-    global licdir, recipes, args
+    global licdir, recipes, args, orig_recipes
 
+    orig_recipes = recipes
     print("- Identifying recipe revisions: ...")
     for recipe in recipes.keys():
         if args.debug:
             recipes[recipe] += "-r0"
         if recipes[recipe].find("AUTOINC") != -1:
             recipes[recipe] = recipes[recipe].split("AUTOINC")[0] + "X-" + recipes[recipe].split("-")[-1]
+        if recipes[recipe].find("+svn") != -1:
+            recipes[recipe] = recipes[recipe].split("+svn")[0] + "+svnX-" + recipes[recipe].split("-")[-1]
         if args.debug:
             continue
 
@@ -606,7 +609,7 @@ def proc_replacefile():
 
 def check_recipes(kbrecfile):
     global recipes, recipe_layer
-
+    global rep_layers, rep_recipes
     import requests
 
     print("- Checking recipes against Black Duck KB ...")
@@ -670,7 +673,26 @@ def check_recipes(kbrecfile):
 
         if recipe in recipe_layer.keys():
             layer = recipe_layer[recipe]
-            comp = layer + "/" + recipe + "/" + ver
+            origcomp = layer + "/" + recipe + "/" + orig_recipes[recipe]
+
+            newlayer_string = layer
+            if recipe in rep_recipes.keys():
+                newrecipever_string = rep_recipes[recipe] + "/" + ver
+            elif recipe + "/" + ver in rep_recipes.keys():
+                newrecipever_string = rep_recipes[recipe + "/" + ver]
+            elif layer + "/" + recipe in rep_recipes.keys():
+                newlayer_string = rep_recipes[layer + "/" + recipe].split("/")[0]
+                slash = rep_recipes[layer + "/" + recipe].find("/") + 1
+                newrecipever_string = rep_recipes[layer + "/" + recipe][slash:]
+            elif layer + "/" + recipe + "/" + ver in rep_recipes.keys():
+                newlayer_string = rep_recipes[layer + "/" + recipe + "/" + ver].split("/")[0]
+                slash = rep_recipes[layer + "/" + recipe + "/" + ver].find("/") + 1
+                newrecipever_string = rep_recipes[layer + "/" + recipe + "/" + ver][slash:]
+            else:
+                newrecipever_string = recipe + "/" + ver
+
+            comp = newlayer_string + "/" + newrecipever_string
+
             if comp in kbentries:
                 # Component exists in KB
                 report['OK'].append(comp)
@@ -693,7 +715,7 @@ def check_recipes(kbrecfile):
                         with '{}/{}/{}' from KB'''.format(
                             comp, layer, arr[0], recipe, ver))
                     recipe_layer[recipe] = arr[0]
-                    report['REPLACED'].append(comp + ':' + arr[0] + '/' + recipe + '/' + ver)
+                    report['REPLACED'].append("ORIG={} REPLACEMENT={}/{}/{}".format(origcomp, arr[0], recipe, ver))
 
                     break
             else:
@@ -713,9 +735,8 @@ def check_recipes(kbrecfile):
                                         not - replaced with '{}/{}/{}' from KB'''.format(
                                             comp, kbreclayers[kbrecvers.index(kbver)], recipe, kbver))
                                     recipes[recipe] = kbver
-                                    report['REPLACED_NOREVISION'].append(comp + ':' +
-                                                                         kbreclayers[kbrecvers.index(kbver)] + '/' +
-                                                                         recipe + '/' + kbver)
+                                    report['REPLACED_NOREVISION'].append("ORIG={} REPLACEMENT={}/{}/{}".format(
+                                        origcomp, kbreclayers[kbrecvers.index(kbver)], recipe, kbver))
 
                                 else:
                                     print(
@@ -724,9 +745,8 @@ def check_recipes(kbrecfile):
                                             comp, kbreclayers[kbrecvers.index(kbver)], recipe, kbver))
                                     recipe_layer[recipe] = kbreclayers[kbrecvers.index(kbver)]
                                     recipes[recipe] = kbver
-                                    report['REPLACED_NOLAYER+REVISION'].append(comp + ':' +
-                                                                               kbreclayers[kbrecvers.index(kbver)] +
-                                                                               '/' + recipe + '/' + kbver)
+                                    report['REPLACED_NOLAYER+REVISION'].append("ORIG={} REPLACEMENT={}/{}/{}".format(
+                                        origcomp, kbreclayers[kbrecvers.index(kbver)], recipe, kbver))
 
                                 break
                     else:
@@ -737,7 +757,7 @@ def check_recipes(kbrecfile):
                                 consider using --repfile with a version replacement (available versions {})'''.format(
                                     comp, kbrecvers))
                             report['NOTREPLACED_NOVERSION'].append(
-                                "{}:{}/{}/{}-{}".format(comp, kbreclayers[kbrecvers.index(kbver)], recipe, kbver, kbrecvers))
+                                "ORIG={} Check layers/recipes in KB - Available versions={}".format(origcomp, kbrecvers))
 
                             continue
                         else:
@@ -747,7 +767,8 @@ def check_recipes(kbrecfile):
                                 --repfile with a version replacement (available versions {})'''.format(
                                     comp, kbrecvers))
                             report['NOTREPLACED_NOLAYER+VERSION'].append(
-                                "{}:{}/{}/{}-{}".format(comp, kbreclayers[kbrecvers.index(kbver)], recipe, kbver, kbrecvers))
+                                "ORIG={} Check layers/recipes in KB - Available versions={}".format(origcomp,
+                                                                    kbrecvers))
                             continue
             continue
 
@@ -819,6 +840,7 @@ comps_layers = []
 comps_recipes = []
 packages = []
 recipes = {}
+orig_recipes = {}
 recipe_layer = {}
 layers = []
 proj_rel = []
