@@ -283,9 +283,11 @@ def proc_recipe_revisions():
         if args.debug:
             recipes[recipe] += "-r0"
         if recipes[recipe].find("AUTOINC") != -1:
-            recipes[recipe] = recipes[recipe].split("AUTOINC")[0] + "X-" + recipes[recipe].split("-")[-1]
+            # recipes[recipe] = recipes[recipe].split("AUTOINC")[0] + "X-" + recipes[recipe].split("-")[-1]
+            recipes[recipe] = recipes[recipe].split("AUTOINC")[0] + "X"
         if recipes[recipe].find("+svn") != -1:
-            recipes[recipe] = recipes[recipe].split("+svn")[0] + "+svnX-" + recipes[recipe].split("-")[-1]
+            # recipes[recipe] = recipes[recipe].split("+svn")[0] + "+svnX" + recipes[recipe].split("-")[-1]
+            recipes[recipe] = recipes[recipe].split("+svn")[0] + "+svnX"
         if args.debug:
             continue
 
@@ -865,10 +867,10 @@ def main():
     global proj_rel
     global comps_layers
     global rep_layers
-    global rep_recipes
+    global rep_recipe
     global do_upload
 
-    print("Yocto build manifest import into Black Duck Utility v1.10")
+    print("Yocto build manifest import into Black Duck Utility v1.11")
     print("--------------------------------------------------------\n")
 
     if (not check_args()) or (not check_env()) or (not find_files()):
