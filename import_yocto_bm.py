@@ -49,7 +49,7 @@ def check_args():
         return False
 
     if args.replacefile != "" and not os.path.isfile(args.replacefile):
-        print("Replacefile file '{}' does not exist\nExiting".format(args.manifest))
+        print("Replacefile file '{}' does not exist\nExiting".format(args.replacefile))
         return False
 
     return True
@@ -280,8 +280,6 @@ def proc_recipe_revisions():
     orig_recipes = recipes
     print("- Identifying recipe revisions: ...")
     for recipe in recipes.keys():
-        if args.debug:
-            recipes[recipe] += "-r0"
         if recipes[recipe].find("AUTOINC") != -1:
             # recipes[recipe] = recipes[recipe].split("AUTOINC")[0] + "X-" + recipes[recipe].split("-")[-1]
             recipes[recipe] = recipes[recipe].split("AUTOINC")[0] + "X"
@@ -289,6 +287,7 @@ def proc_recipe_revisions():
             # recipes[recipe] = recipes[recipe].split("+svn")[0] + "+svnX" + recipes[recipe].split("-")[-1]
             recipes[recipe] = recipes[recipe].split("+svn")[0] + "+svnX"
         if args.debug:
+            recipes[recipe] += "-r0"
             continue
 
         recipeinfo = os.path.join(licdir, recipe, "recipeinfo")
@@ -828,7 +827,7 @@ parser.add_argument("--kb_recipe_file", help="KB recipe file local copy", defaul
 parser.add_argument("--report",
                     help="Output report.txt file of matched recipes",
                     default="")
-parser.add_argument("--debug", help="Debug mode", action='store_true')
+parser.add_argument("--debug", help="Debug mode (requires DEBUG_bblayers.txt file for show-recipes output)", action='store_true')
 
 args = parser.parse_args()
 
@@ -870,8 +869,8 @@ def main():
     global rep_recipe
     global do_upload
 
-    print("Yocto build manifest import into Black Duck Utility v1.11")
-    print("--------------------------------------------------------\n")
+    print("Yocto build manifest import into Black Duck Utility v1.12")
+    print("---------------------------------------------------------\n")
 
     if (not check_args()) or (not check_env()) or (not find_files()):
         sys.exit(1)
