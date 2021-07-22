@@ -1,5 +1,8 @@
 # Synopsys Import Yocto Build Manifest - import_yocto_bm.py
 
+Please use the main repository for this utility https://github.com/blackducksoftware/import_yocto_bm.
+This is a mirror which may not reflect the latest updates.
+
 # INTRODUCTION
 This script is provided under an OSS license as an example of how to use the Black Duck APIs to import components from a Yocto project manifest.
 
